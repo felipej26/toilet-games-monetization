@@ -20,6 +20,8 @@ import { getFirebaseAuth, googleProvider } from "@/lib/firebase/client";
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
+  sessionReady: boolean;
+  authError: string | null;
   signInWithGoogle: () => Promise<void>;
   signOutUser: () => Promise<void>;
 }
@@ -46,24 +48,49 @@ async function clearSessionCookie() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const auth = getFirebaseAuth();
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser);
-      setLoading(false);
+      setAuthError(null);
+
+      if (!nextUser) {
+        setSessionReady(false);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const idToken = await nextUser.getIdToken();
+        await createSessionCookie(idToken);
+        setSessionReady(true);
+      } catch (error) {
+        setSessionReady(false);
+        setAuthError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível criar a sessão.",
+        );
+        await signOut(auth);
+      } finally {
+        setLoading(false);
+      }
     });
     return unsubscribe;
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    setAuthError(null);
     const auth = getFirebaseAuth();
-    const result = await signInWithPopup(auth, googleProvider);
-    const idToken = await result.user.getIdToken();
-    await createSessionCookie(idToken);
+    await signInWithPopup(auth, googleProvider);
   }, []);
 
   const signOutUser = useCallback(async () => {
+    setSessionReady(false);
+    setAuthError(null);
     await clearSessionCookie();
     await signOut(getFirebaseAuth());
   }, []);
@@ -72,10 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
+      sessionReady,
+      authError,
       signInWithGoogle,
       signOutUser,
     }),
-    [user, loading, signInWithGoogle, signOutUser],
+    [user, loading, sessionReady, authError, signInWithGoogle, signOutUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

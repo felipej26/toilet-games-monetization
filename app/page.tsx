@@ -6,16 +6,16 @@ import { Dashboard } from "@/components/Dashboard";
 import { useAuth } from "@/components/AuthProvider";
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
+  const { sessionReady, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !sessionReady) {
       router.replace("/login");
     }
-  }, [loading, user, router]);
+  }, [loading, sessionReady, router]);
 
-  if (loading || !user) {
+  if (loading || !sessionReady) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-950">
         <p className="text-sm text-zinc-400">Carregando...</p>
