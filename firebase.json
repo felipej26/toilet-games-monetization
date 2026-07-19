@@ -1,0 +1,6 @@
+{
+  "apphosting": {
+    "backendId": "toilet-games-monetization",
+    "rootDir": "/"
+  }
+}
