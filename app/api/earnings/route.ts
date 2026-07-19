@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import { getAdminAuth, isEmailAllowed } from "@/lib/firebase/admin";
-import { getCachedEarningsSummary } from "@/lib/admob/reports";
+import { getEarningsSummary } from "@/lib/admob/reports";
 
 async function authenticateRequest(request: NextRequest): Promise<boolean> {
   const authHeader = request.headers.get("authorization");
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const earnings = await getCachedEarningsSummary();
+    const earnings = await getEarningsSummary();
     return NextResponse.json(earnings);
   } catch (error) {
     const message =

@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import { microsToAmount } from "@/lib/format";
 import { getAdMobClient, getPublisherId } from "./client";
 import {
@@ -10,11 +9,11 @@ import {
 } from "./dates";
 
 interface ReportRow {
-  dimensionValues?: Record<
+  dimensionValues?: Record<string, { value?: string; displayLabel?: string }>;
+  metricValues?: Record<
     string,
-    { value?: string; displayLabel?: string }
+    { microsValue?: string; integerValue?: string }
   >;
-  metricValues?: Record<string, { microsValue?: string; integerValue?: string }>;
 }
 
 interface NetworkReportResponse {
@@ -44,6 +43,8 @@ async function generateReport(
 ): Promise<NetworkReportResponse[]> {
   const admob = getAdMobClient();
   const publisherId = getPublisherId();
+
+  console.log({ dateRange });
 
   const response = await admob.accounts.networkReport.generate({
     parent: `accounts/${publisherId}`,
@@ -78,7 +79,8 @@ function parseAppEarnings(rows: NetworkReportResponse[]): AppEarning[] {
     .filter((item) => item.row)
     .map((item) => {
       const app = item.row?.dimensionValues?.APP;
-      const micros = item.row?.metricValues?.ESTIMATED_EARNINGS?.microsValue ?? "0";
+      const micros =
+        item.row?.metricValues?.ESTIMATED_EARNINGS?.microsValue ?? "0";
       return {
         appId: app?.value ?? "unknown",
         appName: app?.displayLabel ?? app?.value ?? "App desconhecido",
@@ -89,7 +91,7 @@ function parseAppEarnings(rows: NetworkReportResponse[]): AppEarning[] {
     .sort((a, b) => b.amount - a.amount);
 }
 
-async function fetchEarningsSummary(): Promise<EarningsSummary> {
+export async function getEarningsSummary(): Promise<EarningsSummary> {
   const [todayRows, yesterdayRows, currentMonthRows, lastMonthRows, byAppRows] =
     await Promise.all([
       generateReport(getTodayRange()),
@@ -108,9 +110,3 @@ async function fetchEarningsSummary(): Promise<EarningsSummary> {
     updatedAt: new Date().toISOString(),
   };
 }
-
-export const getCachedEarningsSummary = unstable_cache(
-  fetchEarningsSummary,
-  ["admob-earnings-summary"],
-  { revalidate: 900 },
-);
