@@ -34,7 +34,14 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[auth/session]", error);
+      const message =
+        error instanceof Error ? error.message : "Invalid token";
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 }
