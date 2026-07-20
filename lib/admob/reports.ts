@@ -16,7 +16,7 @@ interface ReportRow {
   >;
 }
 
-interface NetworkReportResponse {
+interface MediationReportResponse {
   header?: unknown;
   row?: ReportRow;
   footer?: unknown;
@@ -40,13 +40,11 @@ export interface EarningsSummary {
 async function generateReport(
   dateRange: DateRange,
   dimensions: string[] = [],
-): Promise<NetworkReportResponse[]> {
+): Promise<MediationReportResponse[]> {
   const admob = getAdMobClient();
   const publisherId = getPublisherId();
 
-  console.log({ dateRange });
-
-  const response = await admob.accounts.networkReport.generate({
+  const response = await admob.accounts.mediationReport.generate({
     parent: `accounts/${publisherId}`,
     requestBody: {
       reportSpec: {
@@ -61,10 +59,10 @@ async function generateReport(
     },
   });
 
-  return (response.data as NetworkReportResponse[]) ?? [];
+  return (response.data as MediationReportResponse[]) ?? [];
 }
 
-function sumEarningsFromReport(rows: NetworkReportResponse[]): number {
+function sumEarningsFromReport(rows: MediationReportResponse[]): number {
   return rows.reduce((total, item) => {
     const micros = item.row?.metricValues?.ESTIMATED_EARNINGS?.microsValue;
     if (!micros) {
@@ -74,7 +72,7 @@ function sumEarningsFromReport(rows: NetworkReportResponse[]): number {
   }, 0);
 }
 
-function parseAppEarnings(rows: NetworkReportResponse[]): AppEarning[] {
+function parseAppEarnings(rows: MediationReportResponse[]): AppEarning[] {
   return rows
     .filter((item) => item.row)
     .map((item) => {
