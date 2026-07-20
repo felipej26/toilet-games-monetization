@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
+import {
+  initializeApp,
+  getApps,
+  cert,
+  type App,
+  ServiceAccount,
+} from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 
 interface ServiceAccountLike {
@@ -35,7 +41,9 @@ function loadServiceAccount(): ServiceAccountLike | null {
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     return normalizeServiceAccount(
-      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) as ServiceAccountLike,
+      JSON.parse(
+        process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+      ) as ServiceAccountLike,
     );
   }
 
@@ -54,7 +62,7 @@ function createAdminApp(): App {
   const serviceAccount = loadServiceAccount();
   if (serviceAccount) {
     return initializeApp({
-      credential: cert(serviceAccount),
+      credential: cert(serviceAccount as ServiceAccount),
       projectId,
     });
   }
