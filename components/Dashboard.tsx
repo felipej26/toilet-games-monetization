@@ -98,7 +98,9 @@ export function Dashboard() {
 
       <div className="mb-6 flex items-center justify-between gap-4">
         <p className="text-sm text-zinc-500">
-          {updatedAt ? `Última atualização: ${updatedAt}` : "Carregando dados..."}
+          {updatedAt
+            ? `Última atualização: ${updatedAt}`
+            : "Carregando dados..."}
         </p>
         <button
           type="button"
@@ -120,16 +122,34 @@ export function Dashboard() {
         <EarningsSkeleton />
       ) : data ? (
         <div className="space-y-8">
-          <section className="grid gap-4 md:grid-cols-3">
-            <EarningsCard title="Hoje" amount={data.today} highlight />
-            <EarningsCard title="Ontem" amount={data.yesterday} />
-            <EarningsCard title="Este mês" amount={data.currentMonth} />
+          <section className="grid gap-4 md:grid-cols-2">
+            <EarningsCard
+              title="Hoje"
+              amount={data.today}
+              previousAmount={data.yesterday}
+              comparisonLabel="ontem"
+              highlight
+            />
+            <EarningsCard
+              title="Ontem"
+              amount={data.yesterday}
+              previousAmount={data.dayBeforeYesterday}
+              comparisonLabel="anteontem"
+            />
           </section>
 
           <section className="grid gap-4 md:grid-cols-2">
             <EarningsCard
+              title="Este mês"
+              amount={data.currentMonth}
+              previousAmount={data.lastMonthSamePeriod}
+              comparisonLabel="o mesmo período do mês passado"
+            />
+            <EarningsCard
               title="Mês passado"
               amount={data.lastMonth}
+              previousAmount={data.monthBeforeLast}
+              comparisonLabel="o mês anterior"
               subtitle="Total do mês anterior completo"
             />
           </section>

@@ -2,7 +2,10 @@ import { microsToAmount } from "@/lib/format";
 import { getAdMobClient, getPublisherId } from "./client";
 import {
   getCurrentMonthRange,
+  getDayBeforeYesterdayRange,
   getLastMonthRange,
+  getLastMonthSamePeriodRange,
+  getMonthBeforeLastRange,
   getTodayRange,
   getYesterdayRange,
   type DateRange,
@@ -25,14 +28,18 @@ interface MediationReportResponse {
 export interface AppEarning {
   appId: string;
   appName: string;
+  platform: string;
   amount: number;
 }
 
 export interface EarningsSummary {
   today: number;
   yesterday: number;
+  dayBeforeYesterday: number;
   currentMonth: number;
   lastMonth: number;
+  lastMonthSamePeriod: number;
+  monthBeforeLast: number;
   currentMonthByApp: AppEarning[];
   updatedAt: string;
 }
@@ -77,11 +84,13 @@ function parseAppEarnings(rows: MediationReportResponse[]): AppEarning[] {
     .filter((item) => item.row)
     .map((item) => {
       const app = item.row?.dimensionValues?.APP;
+      const platform = item.row?.dimensionValues?.PLATFORM;
       const micros =
         item.row?.metricValues?.ESTIMATED_EARNINGS?.microsValue ?? "0";
       return {
         appId: app?.value ?? "unknown",
         appName: app?.displayLabel ?? app?.value ?? "App desconhecido",
+        platform: platform?.displayLabel ?? platform?.value ?? "Desconhecido",
         amount: microsToAmount(micros),
       };
     })
@@ -90,20 +99,34 @@ function parseAppEarnings(rows: MediationReportResponse[]): AppEarning[] {
 }
 
 export async function getEarningsSummary(): Promise<EarningsSummary> {
-  const [todayRows, yesterdayRows, currentMonthRows, lastMonthRows, byAppRows] =
-    await Promise.all([
-      generateReport(getTodayRange()),
-      generateReport(getYesterdayRange()),
-      generateReport(getCurrentMonthRange()),
-      generateReport(getLastMonthRange()),
-      generateReport(getCurrentMonthRange(), ["APP"]),
-    ]);
+  const [
+    todayRows,
+    yesterdayRows,
+    dayBeforeYesterdayRows,
+    currentMonthRows,
+    lastMonthRows,
+    lastMonthSamePeriodRows,
+    monthBeforeLastRows,
+    byAppRows,
+  ] = await Promise.all([
+    generateReport(getTodayRange()),
+    generateReport(getYesterdayRange()),
+    generateReport(getDayBeforeYesterdayRange()),
+    generateReport(getCurrentMonthRange()),
+    generateReport(getLastMonthRange()),
+    generateReport(getLastMonthSamePeriodRange()),
+    generateReport(getMonthBeforeLastRange()),
+    generateReport(getCurrentMonthRange(), ["APP", "PLATFORM"]),
+  ]);
 
   return {
     today: sumEarningsFromReport(todayRows),
     yesterday: sumEarningsFromReport(yesterdayRows),
+    dayBeforeYesterday: sumEarningsFromReport(dayBeforeYesterdayRows),
     currentMonth: sumEarningsFromReport(currentMonthRows),
     lastMonth: sumEarningsFromReport(lastMonthRows),
+    lastMonthSamePeriod: sumEarningsFromReport(lastMonthSamePeriodRows),
+    monthBeforeLast: sumEarningsFromReport(monthBeforeLastRows),
     currentMonthByApp: parseAppEarnings(byAppRows),
     updatedAt: new Date().toISOString(),
   };
